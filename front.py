@@ -7,7 +7,7 @@ api = 'http://127.0.0.1:8000/predict/'
 st.title('MNIST Model')
 st.write('Загрузите изображение с цифрой и модель попробует распознать')
 
-uploaded_file = st.file_uploader('Выберите изображение', type=['png, jpg, jpeg'])
+uploaded_file = st.file_uploader('Выберите изображение', type=['png', 'jpg', 'jpeg'])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
@@ -22,6 +22,6 @@ if uploaded_file:
                 result = request.json()
                 st.success(f'Модель думает, что это цифра: {result['Prediction']}')
             else:
-                st.error(f'Error: {request.status_code}')
+                st.error(f'Error {request.status_code}')
         except requests.exceptions.RequestException:
             st.error('Cannot connect to the API')
