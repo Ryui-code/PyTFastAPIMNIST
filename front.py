@@ -1,58 +1,27 @@
 import streamlit as st
-import torch
-import torch.nn as nn
-from torchvision import transforms
 from PIL import Image
+import requests
 
-class NNLogic(nn.Module):
-    def __init__(self):
-        super().__init__()
+api = 'http://127.0.0.1:8000/predict/'
 
-        self.first = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2)
-        )
-        self.second = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(16 * 14 * 14, 64),
-            nn.ReLU(),
-            nn.Linear(64, 10)
-        )
+st.title('MNIST Model')
+st.write('Загрузите изображение с цифрой и модель попробует распознать')
 
-    def forward(self, x):
-        x = self.first(x)
-        return self.second(x)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-model = NNLogic()
-model.load_state_dict(torch.load("model.pth", map_location=device))
-model.to(device)
-model.eval()
-
-transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),
-    transforms.Resize((28, 28)),
-    transforms.ToTensor()
-])
-
-st.title("MNIST Classifier")
-st.write("Загрузите изображение с цифрой, и модель попробует её распознать")
-
-uploaded_file = st.file_uploader(
-    "Выберите изображение",
-    type=["png", "jpg", "jpeg"]
-)
+uploaded_file = st.file_uploader('Выберите изображение', type=['png, jpg, jpeg'])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Загруженное изображение", width=200)
+    st.image(image, caption='Загруженное изображение', width=200)
 
-    if st.button("Определить цифру"):
-        img = transform(image).unsqueeze(0).to(device)
+    if st.button('Определить'):
+        try:
+            files = {'file': (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
+            request = requests.post(api, files=files)
 
-        with torch.no_grad():
-            pred = model(img).argmax(dim=1).item()
-
-        st.success(f"Модель думает, что это цифра: {pred}")
+            if request.status_code == 200:
+                result = request.json()
+                st.success(f'Модель думает, что это цифра: {result['Prediction']}')
+            else:
+                st.error(f'Error: {request.status_code}')
+        except requests.exceptions.RequestException:
+            st.error('Cannot connect to the API')
